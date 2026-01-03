@@ -56,7 +56,26 @@ const BuildActivity = {
         this.hintCooldown = false;
 
         const letter = this.letters[this.currentIndex];
-        this.targetPattern = BrailleData.getPattern(letter);
+
+        // Handle special content types
+        if (letter === 'dot-practice') {
+            // Practice all 6 dots
+            this.targetPattern = [1, 1, 1, 1, 1, 1];
+            this.displayLetter = '⠿';
+            this.instruction = 'Toca todos los puntos';
+        } else if (letter === 'uppercase-sign') {
+            this.targetPattern = BrailleData.SIGNS ? BrailleData.SIGNS['uppercase'] : [0, 0, 0, 1, 0, 1];
+            this.displayLetter = 'MAY';
+            this.instruction = 'Construye el signo de mayúscula';
+        } else if (letter === 'number-sign') {
+            this.targetPattern = BrailleData.SIGNS ? BrailleData.SIGNS['number'] : [0, 0, 1, 1, 1, 1];
+            this.displayLetter = '#';
+            this.instruction = 'Construye el signo numérico';
+        } else {
+            this.targetPattern = BrailleData.getPattern(letter) || [1, 0, 0, 0, 0, 0];
+            this.displayLetter = letter.toUpperCase();
+            this.instruction = 'Construye la letra';
+        }
     },
 
     /**
@@ -86,9 +105,9 @@ const BuildActivity = {
             </div>
 
             <div class="activity-content">
-                <p class="activity-instruction">Construye la letra</p>
+                <p class="activity-instruction">${this.instruction || 'Construye la letra'}</p>
                 
-                <div class="activity-letter">${letter.toUpperCase()}</div>
+                <div class="activity-letter">${this.displayLetter || letter.toUpperCase()}</div>
                 
                 <div class="activity-cell-container" id="build-cell-container">
                     <div class="braille-cell size-lg interactive" id="build-cell">

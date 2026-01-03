@@ -1,7 +1,7 @@
 /**
  * Home Screen
  * Main landing screen with greeting, streak, guided route, and modes
- * UPDATED: Using new Tailwind CSS design from Homescreen.html
+ * RESTORED: Using exact design from Homescreen.html
  */
 
 const HomeScreen = {
@@ -13,7 +13,6 @@ const HomeScreen = {
         const user = AppState.getUser();
         const streak = AppState.getStreak();
         const currentChapter = LevelsData.getCurrentChapter();
-        const progress = LevelsData.getOverallProgress();
 
         container.innerHTML = `
             <div class="flex flex-col font-display">
@@ -38,7 +37,7 @@ const HomeScreen = {
                                 </div>
                                 <div>
                                     <h3 class="text-text-main dark:text-white text-lg font-bold leading-tight">Ruta Guiada</h3>
-                                    <p class="text-text-sub dark:text-gray-400 text-sm font-normal mt-1">Capítulo: ${currentChapter ? currentChapter.title : 'Orientación'}</p>
+                                    <p class="text-text-sub dark:text-gray-400 text-sm font-normal mt-1">Nivel 3: Alfabeto Básico</p>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -171,15 +170,15 @@ const HomeScreen = {
 
         switch (mode) {
             case 'practice':
-                // Start free practice
-                App.startActivity('build', ['A', 'B', 'C', 'D', 'E']);
+                // Start free practice with vowels
+                App.startActivity('build', ['a', 'e', 'i', 'o', 'u']);
                 break;
             case 'games':
                 // Start games mode
                 App.startActivity('games', BrailleData.getAllLetters().slice(0, 10));
                 break;
             case 'review':
-                // Show review screen or dictionary
+                // Show dictionary
                 Navigation.navigateTo('dictionary');
                 break;
             case 'achievements':
