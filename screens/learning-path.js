@@ -81,7 +81,7 @@ const LearningPathScreen = {
                 <!-- Continue Button -->
                 <div style="margin-top: var(--space-6);">
                     <button class="btn btn-primary btn-block btn-lg" id="continue-btn">
-                        Continuar: ${currentChapter ? currentChapter.title.split(':')[1].trim() : 'Consonantes'}
+                        Continuar: ${currentChapter ? currentChapter.title : 'Orientación'}
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                             <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
