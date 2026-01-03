@@ -774,6 +774,41 @@ const LevelsData = {
         const chapter = this.getChapter(chapterId);
         if (!chapter) return false;
         return !chapter.isPremium || hasPremium;
+    },
+
+    /**
+     * Get current chapter in progress
+     * Based on user progress from AppState
+     */
+    getCurrentChapter() {
+        // Try to get completed lessons from AppState
+        let completedLessons = [];
+        try {
+            const progress = AppState?.getProgress?.()?.completedLessons || [];
+            completedLessons = progress;
+        } catch (e) {
+            completedLessons = [];
+        }
+
+        // Find first chapter with incomplete lessons
+        for (const chapter of this.chapters) {
+            const hasIncompleteLessons = chapter.lessons.some(
+                lesson => !completedLessons.includes(lesson.id)
+            );
+            if (hasIncompleteLessons) {
+                return chapter;
+            }
+        }
+
+        // All complete, return last chapter
+        return this.chapters[this.chapters.length - 1];
+    },
+
+    /**
+     * Get all chapters
+     */
+    getChapters() {
+        return this.chapters;
     }
 };
 
