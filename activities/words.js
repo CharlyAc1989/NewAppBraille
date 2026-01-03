@@ -222,7 +222,7 @@ const WordsActivity = {
             this.correctAttempts++;
             this.updateDotVisual(dotNum, 'correct');
             Haptics.success();
-            AudioFeedback.playTone('success');
+            AudioFeedback.success();
 
             // Check if current pattern is complete
             if (this.isPatternComplete()) {
@@ -233,7 +233,7 @@ const WordsActivity = {
             this.userPattern[dotIndex] = 1;
             this.updateDotVisual(dotNum, 'incorrect');
             Haptics.error();
-            AudioFeedback.playTone('error');
+            AudioFeedback.error();
 
             setTimeout(() => {
                 const dotEl = document.querySelector(`#words-cell [data-dot="${dotNum}"]`);
@@ -358,7 +358,7 @@ const WordsActivity = {
         const completed = Progression.isLevelComplete(accuracy);
 
         Haptics.celebration();
-        AudioFeedback.playTone('celebration');
+        AudioFeedback.celebration();
 
         Modal.showGameComplete(this.score, accuracy, {
             stars,

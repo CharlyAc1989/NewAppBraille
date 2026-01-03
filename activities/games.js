@@ -238,7 +238,7 @@ const GamesActivity = {
         const stars = Progression.calculateStars(accuracy);
 
         Haptics.celebration();
-        AudioFeedback.playTone('celebration');
+        AudioFeedback.celebration();
 
         Modal.showGameComplete(this.score, accuracy, {
             stars,

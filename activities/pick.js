@@ -249,7 +249,7 @@ const PickActivity = {
             this.score += 10;
             optionEl.classList.add('correct');
             Haptics.success();
-            AudioFeedback.playTone('success');
+            AudioFeedback.success();
 
             // Show next button after short delay
             setTimeout(() => {
@@ -269,7 +269,7 @@ const PickActivity = {
             // INCORRECT
             optionEl.classList.add('incorrect');
             Haptics.error();
-            AudioFeedback.playTone('error');
+            AudioFeedback.error();
 
             // Show correct answer
             document.querySelectorAll('.pick-option').forEach(opt => {
@@ -316,7 +316,7 @@ const PickActivity = {
         const completed = Progression.isLevelComplete(accuracy);
 
         Haptics.celebration();
-        AudioFeedback.playTone('celebration');
+        AudioFeedback.celebration();
 
         Modal.showGameComplete(this.score, accuracy, {
             stars,

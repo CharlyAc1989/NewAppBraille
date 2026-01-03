@@ -243,7 +243,7 @@ const BuildActivity = {
             this.correctAttempts++;
             this.updateDotVisual(dotNum, 'correct');
             Haptics.success();
-            AudioFeedback.playTone('success');
+            AudioFeedback.success();
 
             // Check if pattern is complete
             if (this.isPatternComplete()) {
@@ -254,7 +254,7 @@ const BuildActivity = {
             this.userPattern[dotIndex] = 1;
             this.updateDotVisual(dotNum, 'incorrect');
             Haptics.error();
-            AudioFeedback.playTone('error');
+            AudioFeedback.error();
 
             // Keep error state for 0.5s
             setTimeout(() => {
@@ -450,7 +450,7 @@ const BuildActivity = {
         const completed = Progression.isLevelComplete(accuracy);
 
         Haptics.celebration();
-        AudioFeedback.playTone('celebration');
+        AudioFeedback.celebration();
 
         // Show completion modal
         Modal.showGameComplete(this.score, accuracy, {
