@@ -38,7 +38,7 @@ const HomeScreen = {
                                 </div>
                                 <div>
                                     <h3 class="text-text-main dark:text-white text-lg font-bold leading-tight">Ruta Guiada</h3>
-                                    <p class="text-text-sub dark:text-gray-400 text-sm font-normal mt-1">Nivel 3: ${currentChapter ? currentChapter.title.split(':')[1].trim() : 'Alfabeto Básico'}</p>
+                                    <p class="text-text-sub dark:text-gray-400 text-sm font-normal mt-1">Capítulo: ${currentChapter ? currentChapter.title : 'Orientación'}</p>
                                 </div>
                             </div>
                             <div class="mt-4">
