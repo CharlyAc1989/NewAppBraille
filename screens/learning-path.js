@@ -24,7 +24,7 @@ const LearningPathScreen = {
     render(container) {
         const user = AppState.getUser();
         const progress = LevelsData.getOverallProgress();
-        const chapters = LevelsData.chapters;
+        const chapters = LevelsData.getChaptersWithStatus();
         const currentChapter = LevelsData.getCurrentChapter();
 
         container.innerHTML = `

@@ -735,31 +735,115 @@ const LevelsData = {
     },
 
     /**
+     * Get completed lessons from AppState
+     */
+    getCompletedLessons() {
+        try {
+            return AppState?.getProgress?.()?.completedLessons || [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    /**
+     * Check if a specific lesson is completed
+     */
+    isLessonCompleted(chapterId, lessonId) {
+        const completedLessons = this.getCompletedLessons();
+        const lessonKey = `${chapterId}:${lessonId}`;
+        return completedLessons.includes(lessonKey);
+    },
+
+    /**
+     * Get dynamic chapter status based on completed lessons
+     * Returns: 'completed', 'in-progress', 'unlocked', or 'locked'
+     */
+    getChapterStatus(chapter) {
+        const completedLessons = this.getCompletedLessons();
+
+        // Count completed lessons in this chapter
+        let completedCount = 0;
+        for (const lesson of chapter.lessons) {
+            const lessonKey = `${chapter.id}:${lesson.id}`;
+            if (completedLessons.includes(lessonKey)) {
+                completedCount++;
+            }
+        }
+
+        if (completedCount === chapter.lessons.length) {
+            return 'completed';
+        } else if (completedCount > 0) {
+            return 'in-progress';
+        }
+
+        // Check if previous chapter is completed (to unlock this one)
+        const chapterIndex = this.chapters.findIndex(c => c.id === chapter.id);
+        if (chapterIndex === 0) {
+            return 'unlocked'; // First chapter always unlocked
+        }
+
+        const prevChapter = this.chapters[chapterIndex - 1];
+        let prevCompletedCount = 0;
+        for (const lesson of prevChapter.lessons) {
+            const lessonKey = `${prevChapter.id}:${lesson.id}`;
+            if (completedLessons.includes(lessonKey)) {
+                prevCompletedCount++;
+            }
+        }
+
+        // Unlock if previous chapter has at least one completed lesson
+        if (prevCompletedCount > 0) {
+            return 'unlocked';
+        }
+
+        return 'locked';
+    },
+
+    /**
+     * Get chapters with dynamic status
+     */
+    getChaptersWithStatus() {
+        return this.chapters.map(chapter => ({
+            ...chapter,
+            status: this.getChapterStatus(chapter)
+        }));
+    },
+
+    /**
      * Calculate overall progress
      */
-    getOverallProgress(completedLessons = []) {
+    getOverallProgress() {
+        const completedLessons = this.getCompletedLessons();
         let total = 0;
         let completed = 0;
 
         this.chapters.forEach(chapter => {
             total += chapter.lessons.length;
             chapter.lessons.forEach(lesson => {
-                if (completedLessons.includes(lesson.id)) {
+                const lessonKey = `${chapter.id}:${lesson.id}`;
+                if (completedLessons.includes(lessonKey)) {
                     completed++;
                 }
             });
         });
 
-        return Math.round((completed / total) * 100);
+        return total > 0 ? Math.round((completed / total) * 100) : 0;
     },
 
     /**
      * Get next available lesson
      */
-    getNextLesson(completedLessons = []) {
+    getNextLesson() {
+        const completedLessons = this.getCompletedLessons();
+
         for (const chapter of this.chapters) {
+            // Skip locked chapters
+            const status = this.getChapterStatus(chapter);
+            if (status === 'locked') continue;
+
             for (const lesson of chapter.lessons) {
-                if (!completedLessons.includes(lesson.id)) {
+                const lessonKey = `${chapter.id}:${lesson.id}`;
+                if (!completedLessons.includes(lessonKey)) {
                     return { chapter, lesson };
                 }
             }
@@ -768,11 +852,15 @@ const LevelsData = {
     },
 
     /**
-     * Check if chapter is accessible (not premium or user has premium)
+     * Check if chapter is accessible (not premium or user has premium, and unlocked)
      */
     isChapterAccessible(chapterId, hasPremium = false) {
         const chapter = this.getChapter(chapterId);
         if (!chapter) return false;
+
+        const status = this.getChapterStatus(chapter);
+        if (status === 'locked') return false;
+
         return !chapter.isPremium || hasPremium;
     },
 
@@ -781,20 +869,18 @@ const LevelsData = {
      * Based on user progress from AppState
      */
     getCurrentChapter() {
-        // Try to get completed lessons from AppState
-        let completedLessons = [];
-        try {
-            const progress = AppState?.getProgress?.()?.completedLessons || [];
-            completedLessons = progress;
-        } catch (e) {
-            completedLessons = [];
-        }
+        const completedLessons = this.getCompletedLessons();
 
         // Find first chapter with incomplete lessons
         for (const chapter of this.chapters) {
-            const hasIncompleteLessons = chapter.lessons.some(
-                lesson => !completedLessons.includes(lesson.id)
-            );
+            const status = this.getChapterStatus(chapter);
+            if (status === 'locked') continue;
+
+            const hasIncompleteLessons = chapter.lessons.some(lesson => {
+                const lessonKey = `${chapter.id}:${lesson.id}`;
+                return !completedLessons.includes(lessonKey);
+            });
+
             if (hasIncompleteLessons) {
                 return chapter;
             }
