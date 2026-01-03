@@ -139,6 +139,13 @@ const BuildActivity = {
             </div>
 
             <div class="activity-footer">
+                <!-- Botón Siguiente (aparece cuando el patrón está completo) -->
+                <button class="btn btn-primary btn-block btn-lg hidden" id="next-btn" style="margin-bottom: var(--space-3);">
+                    Siguiente
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-left: 8px;">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
                 <div style="display: flex; gap: var(--space-3); margin-bottom: var(--space-3);">
                     ${!this.noHints ? `
                         <button class="btn btn-secondary flex-1" id="hint-btn">
@@ -201,6 +208,14 @@ const BuildActivity = {
         document.getElementById('reset-btn').addEventListener('click', () => {
             this.resetCurrentPattern();
         });
+
+        // Next button
+        const nextBtn = document.getElementById('next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                this.goToNext();
+            });
+        }
     },
 
     /**
@@ -278,21 +293,37 @@ const BuildActivity = {
     },
 
     /**
-     * Handle pattern completion
+     * Handle pattern completion - show next button
      */
     onPatternComplete() {
         this.score += 10;
 
-        // Brief delay before moving to next
-        setTimeout(() => {
-            if (this.currentIndex < this.letters.length - 1) {
-                this.currentIndex++;
-                this.resetPattern();
-                this.render();
-            } else {
-                this.complete();
-            }
-        }, 600);
+        // Show the next button
+        const nextBtn = document.getElementById('next-btn');
+        if (nextBtn) {
+            nextBtn.classList.remove('hidden');
+        }
+
+        // Update hint area with success message
+        const hintArea = document.getElementById('hint-area');
+        if (hintArea) {
+            hintArea.innerHTML = `<p style="color: var(--color-success); font-size: var(--font-size-sm); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente" para continuar</p>`;
+        }
+    },
+
+    /**
+     * Go to next letter/exercise
+     */
+    goToNext() {
+        Haptics.tap();
+
+        if (this.currentIndex < this.letters.length - 1) {
+            this.currentIndex++;
+            this.resetPattern();
+            this.render();
+        } else {
+            this.complete();
+        }
     },
 
     /**

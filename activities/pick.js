@@ -181,7 +181,14 @@ const PickActivity = {
             </div>
 
             <div class="activity-footer">
-                <p style="text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                <!-- Botón Siguiente (aparece cuando acierta) -->
+                <button class="btn btn-primary btn-block btn-lg hidden" id="next-btn" style="margin-bottom: var(--space-3);">
+                    Siguiente
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-left: 8px;">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <p id="pick-hint" style="text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
                     Toca el patrón correcto
                 </p>
             </div>
@@ -212,6 +219,14 @@ const PickActivity = {
                 this.selectOption(option);
             });
         });
+
+        // Next button
+        const nextBtn = document.getElementById('next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                this.goToNext();
+            });
+        }
     },
 
     /**
@@ -236,15 +251,17 @@ const PickActivity = {
             Haptics.success();
             AudioFeedback.playTone('success');
 
-            // Move to next after brief delay
-            setTimeout(() => {
-                if (this.currentIndex < this.letters.length - 1) {
-                    this.currentIndex++;
-                    this.render();
-                } else {
-                    this.complete();
-                }
-            }, 600);
+            // Show next button
+            const nextBtn = document.getElementById('next-btn');
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+            }
+
+            // Update hint text
+            const pickHint = document.getElementById('pick-hint');
+            if (pickHint) {
+                pickHint.innerHTML = `<span style="color: var(--color-success); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente"</span>`;
+            }
         } else {
             // INCORRECT
             optionEl.classList.add('incorrect');
@@ -267,6 +284,20 @@ const PickActivity = {
                     opt.style.pointerEvents = 'auto';
                 });
             }, 800);
+        }
+    },
+
+    /**
+     * Go to next letter/exercise
+     */
+    goToNext() {
+        Haptics.tap();
+
+        if (this.currentIndex < this.letters.length - 1) {
+            this.currentIndex++;
+            this.render();
+        } else {
+            this.complete();
         }
     },
 

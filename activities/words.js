@@ -141,6 +141,14 @@ const WordsActivity = {
             </div>
 
             <div class="activity-footer">
+                <!-- Botón Siguiente -->
+                <button class="btn btn-primary btn-block btn-lg hidden" id="next-btn" style="margin-bottom: var(--space-3);">
+                    Siguiente
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="margin-left: 8px;">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <div id="words-hint" style="text-align: center; min-height: 20px; margin-bottom: var(--space-2);"></div>
                 <button class="btn btn-secondary btn-block" id="reset-btn">
                     <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 4px;">refresh</span>
                     Reiniciar letra
@@ -178,6 +186,14 @@ const WordsActivity = {
         document.getElementById('reset-btn').addEventListener('click', () => {
             this.resetCurrentLetter();
         });
+
+        // Next button
+        const nextBtn = document.getElementById('next-btn');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                this.goToNext();
+            });
+        }
     },
 
     /**
@@ -254,43 +270,62 @@ const WordsActivity = {
     },
 
     /**
-     * Handle pattern completion
+     * Handle pattern completion - show next button
      */
     onPatternComplete() {
         this.score += 5;
 
-        setTimeout(() => {
-            // Check if more patterns for this character
-            if (this.currentPatternIndex < this.targetPatterns.length - 1) {
+        // Check if more patterns for this character (e.g., uppercase sign + letter)
+        if (this.currentPatternIndex < this.targetPatterns.length - 1) {
+            // Auto-advance to next pattern of same character
+            setTimeout(() => {
                 this.currentPatternIndex++;
                 this.userPattern = [0, 0, 0, 0, 0, 0];
                 this.render();
-                return;
-            }
+            }, 400);
+            return;
+        }
 
-            // Move to next letter
-            const word = this.words[this.currentWordIndex];
+        // Show next button
+        const nextBtn = document.getElementById('next-btn');
+        if (nextBtn) {
+            nextBtn.classList.remove('hidden');
+        }
 
-            if (this.currentLetterIndex < word.length - 1) {
-                this.currentLetterIndex++;
+        // Show success message
+        const wordsHint = document.getElementById('words-hint');
+        if (wordsHint) {
+            wordsHint.innerHTML = `<span style="color: var(--color-success); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente"</span>`;
+        }
+    },
+
+    /**
+     * Go to next letter/word
+     */
+    goToNext() {
+        Haptics.tap();
+
+        const word = this.words[this.currentWordIndex];
+
+        if (this.currentLetterIndex < word.length - 1) {
+            this.currentLetterIndex++;
+            this.setupCurrentLetter();
+            this.render();
+        } else {
+            // Word complete, move to next word
+            if (this.currentWordIndex < this.words.length - 1) {
+                this.currentWordIndex++;
+                this.currentLetterIndex = 0;
                 this.setupCurrentLetter();
                 this.render();
-            } else {
-                // Word complete, move to next word
-                if (this.currentWordIndex < this.words.length - 1) {
-                    this.currentWordIndex++;
-                    this.currentLetterIndex = 0;
-                    this.setupCurrentLetter();
-                    this.render();
 
-                    Haptics.celebration();
-                    AudioFeedback.speak(`¡Palabra completada!`);
-                } else {
-                    // All words complete
-                    this.complete();
-                }
+                Haptics.celebration();
+                AudioFeedback.speak(`¡Palabra completada!`);
+            } else {
+                // All words complete
+                this.complete();
             }
-        }, 400);
+        }
     },
 
     /**
