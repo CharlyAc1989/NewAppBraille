@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Braille Quest - Selección de Modo</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f45925",
+                        "background-light": "#f8f6f5",
+                        "background-dark": "#221410",
+                        "text-main": "#1c110d",
+                        "text-sub": "#9c5e49",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "2xl": "2rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .braille-pattern {
+            background-image: radial-gradient(#f45925 1.5px, transparent 1.5px);
+            background-size: 12px 12px;
+            opacity: 0.1;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-text-main">
+    <div
+        class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto shadow-2xl bg-background-light dark:bg-background-dark">
+        <!-- Header -->
+        <header
+            class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+            <div
+                class="flex size-12 shrink-0 items-center justify-center rounded-full active:bg-gray-100 dark:active:bg-gray-800 cursor-pointer">
+                <span class="material-symbols-outlined text-text-main dark:text-white"
+                    style="font-size: 28px;">menu</span>
+            </div>
+            <h2
+                class="text-text-main dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">
+                Braille Quest
+            </h2>
+            <div class="flex size-12 shrink-0 items-center justify-center">
+                <button
+                    class="flex size-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <!-- User Avatar Placeholder -->
+                    <img alt="Perfil de usuario" class="size-full object-cover"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4DquYXu3RM4-7GXtan3_JFYlJ7KBnvXVCDNctDPZPrzmub_QWI4cGXKLtTVq4TfCXrMGGBvZA37_SiAFLu3MZsHxbtfsIGQibVZcnCA7IAASfZaVJhZRL50axJfxn4Uqpb8Iy5su1aUHg8iEpbAwFy4TdVv7qHNNfc5stbxXo4lsYPKEeXYKepPx6nuUdSGjQg7q2jxkfBNpzpS8Xj6s78Fkxexlg6YPX6I4ffv1JpSEIwzs8E5qK-YBbEUvGdHdnat0FGfXkmTo" />
+                </button>
+            </div>
+        </header>
+        <!-- Main Content Scroll Area -->
+        <main class="flex-1 flex flex-col px-4 pb-24">
+            <!-- Greeting & Daily Progress -->
+            <div class="pt-4 pb-6">
+                <h1 class="text-text-main dark:text-white tracking-tight text-[28px] font-bold leading-tight mb-1">
+                    ¡Hola, Alex!</h1>
+                <p class="text-text-sub dark:text-gray-400 text-sm font-medium">Listo para continuar tu aprendizaje?</p>
+            </div>
+            <!-- Featured "Continue" Card (Ruta Guiada highlight) -->
+            <div class="mb-6">
+                <div
+                    class="group relative flex items-stretch justify-between gap-4 rounded-2xl bg-white dark:bg-[#2e1f1a] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border-2 border-transparent hover:border-primary/20 transition-all active:scale-[0.98] cursor-pointer overflow-hidden">
+                    <!-- Decor element -->
+                    <div
+                        class="absolute right-0 top-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-primary/10">
+                    </div>
+                    <div class="flex flex-[2_2_0px] flex-col justify-between z-10">
+                        <div class="flex flex-col gap-2">
+                            <div
+                                class="inline-flex items-center gap-1.5 self-start rounded-full bg-primary/10 px-2.5 py-1">
+                                <span
+                                    class="material-symbols-outlined text-primary text-[14px]">local_fire_department</span>
+                                <span class="text-primary text-xs font-bold uppercase tracking-wide">Racha: 3
+                                    días</span>
+                            </div>
+                            <div>
+                                <h3 class="text-text-main dark:text-white text-lg font-bold leading-tight">Ruta Guiada
+                                </h3>
+                                <p class="text-text-sub dark:text-gray-400 text-sm font-normal mt-1">Nivel 3: Alfabeto
+                                    Básico</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <span
+                                class="inline-flex items-center gap-1 text-primary font-bold text-sm group-hover:underline">
+                                Continuar
+                                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="w-24 shrink-0 flex items-center justify-center">
+                        <!-- Abstract Map/Path Illustration -->
+                        <div
+                            class="relative w-20 h-20 rounded-full bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-primary text-4xl">map</span>
+                            <div
+                                class="absolute -bottom-1 -right-1 bg-green-500 border-2 border-white dark:border-[#2e1f1a] rounded-full p-1">
+                                <span class="material-symbols-outlined text-white text-[12px] block">play_arrow</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Grid of Other Modes -->
+            <h3 class="text-text-main dark:text-white text-lg font-bold mb-4 px-1">Explorar modos</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Práctica Libre -->
+                <button
+                    class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#2e1f1a] p-5 shadow-sm active:scale-95 transition-all text-left border-2 border-transparent hover:border-blue-100 dark:hover:border-blue-900/30 h-44 relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-blue-50/50 dark:bg-blue-900/5 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/10 transition-colors">
+                    </div>
+                    <div
+                        class="relative z-10 w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 flex items-center justify-center mb-auto">
+                        <span class="material-symbols-outlined text-3xl">menu_book</span>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-text-main dark:text-white text-base font-bold leading-tight">Práctica libre</p>
+                        <p class="text-text-sub dark:text-gray-400 text-xs mt-1">Sin límites de tiempo</p>
+                    </div>
+                </button>
+                <!-- Juegos -->
+                <button
+                    class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#2e1f1a] p-5 shadow-sm active:scale-95 transition-all text-left border-2 border-transparent hover:border-purple-100 dark:hover:border-purple-900/30 h-44 relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-purple-50/50 dark:bg-purple-900/5 group-hover:bg-purple-50 dark:group-hover:bg-purple-900/10 transition-colors">
+                    </div>
+                    <div
+                        class="relative z-10 w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 flex items-center justify-center mb-auto">
+                        <span class="material-symbols-outlined text-3xl">sports_esports</span>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-text-main dark:text-white text-base font-bold leading-tight">Juegos</p>
+                        <p class="text-text-sub dark:text-gray-400 text-xs mt-1">Retos divertidos</p>
+                    </div>
+                </button>
+                <!-- Repasar Errores -->
+                <button
+                    class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#2e1f1a] p-5 shadow-sm active:scale-95 transition-all text-left border-2 border-transparent hover:border-red-100 dark:hover:border-red-900/30 h-44 relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-red-50/50 dark:bg-red-900/5 group-hover:bg-red-50 dark:group-hover:bg-red-900/10 transition-colors">
+                    </div>
+                    <div
+                        class="relative z-10 w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-300 flex items-center justify-center mb-auto">
+                        <span class="material-symbols-outlined text-3xl">replay_circle_filled</span>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-text-main dark:text-white text-base font-bold leading-tight">Repasar</p>
+                        <p class="text-text-sub dark:text-gray-400 text-xs mt-1">Corrige tus fallos</p>
+                    </div>
+                </button>
+                <!-- Logros / Extra (To balance the grid) -->
+                <button
+                    class="group flex flex-col gap-3 rounded-2xl bg-white dark:bg-[#2e1f1a] p-5 shadow-sm active:scale-95 transition-all text-left border-2 border-transparent hover:border-amber-100 dark:hover:border-amber-900/30 h-44 relative overflow-hidden">
+                    <div
+                        class="absolute inset-0 bg-amber-50/50 dark:bg-amber-900/5 group-hover:bg-amber-50 dark:group-hover:bg-amber-900/10 transition-colors">
+                    </div>
+                    <div
+                        class="relative z-10 w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-300 flex items-center justify-center mb-auto">
+                        <span class="material-symbols-outlined text-3xl">emoji_events</span>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-text-main dark:text-white text-base font-bold leading-tight">Logros</p>
+                        <p class="text-text-sub dark:text-gray-400 text-xs mt-1">Tus medallas</p>
+                    </div>
+                </button>
+            </div>
+            <!-- Braille Hint Decoration -->
+            <div class="mt-8 flex justify-center opacity-30">
+                <div class="flex gap-4">
+                    <div class="w-2 h-2 rounded-full bg-text-sub"></div>
+                    <div class="w-2 h-2 rounded-full bg-text-sub"></div>
+                    <div class="w-2 h-2 rounded-full bg-text-sub"></div>
+                </div>
+            </div>
+        </main>
+        <!-- Bottom Nav Bar -->
+        <nav
+            class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#1a100d]/95 backdrop-blur-md border-t border-gray-100 dark:border-white/5 pb-safe max-w-md mx-auto">
+            <div class="flex justify-around items-center px-2 py-3">
+                <a class="flex flex-col items-center gap-1 min-w-[64px] group" href="#">
+                    <div
+                        class="flex h-8 w-14 items-center justify-center rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <span class="material-symbols-outlined text-primary text-[24px]">home</span>
+                    </div>
+                    <span class="text-primary text-[11px] font-bold">Inicio</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 min-w-[64px] group" href="#">
+                    <div
+                        class="flex h-8 w-14 items-center justify-center rounded-full text-text-sub dark:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-white/5 transition-colors">
+                        <span class="material-symbols-outlined text-[24px]">school</span>
+                    </div>
+                    <span class="text-text-sub dark:text-gray-400 text-[11px] font-medium">Diccionario</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 min-w-[64px] group" href="#">
+                    <div
+                        class="flex h-8 w-14 items-center justify-center rounded-full text-text-sub dark:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-white/5 transition-colors">
+                        <span class="material-symbols-outlined text-[24px]">bar_chart</span>
+                    </div>
+                    <span class="text-text-sub dark:text-gray-400 text-[11px] font-medium">Estadísticas</span>
+                </a>
+                <a class="flex flex-col items-center gap-1 min-w-[64px] group" href="#">
+                    <div
+                        class="flex h-8 w-14 items-center justify-center rounded-full text-text-sub dark:text-gray-400 group-hover:bg-gray-100 dark:group-hover:bg-white/5 transition-colors">
+                        <span class="material-symbols-outlined text-[24px]">settings</span>
+                    </div>
+                    <span class="text-text-sub dark:text-gray-400 text-[11px] font-medium">Ajustes</span>
+                </a>
+            </div>
+            <!-- Safe area spacer for iOS home indicator -->
+            <div class="h-4 w-full"></div>
+        </nav>
+    </div>
+</body>
+
+</html>
