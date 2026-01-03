@@ -1,63 +1,143 @@
 /**
  * Pick Activity
- * Select correct Braille pattern from options
- * KEY RULE: Similar distractors, not random
+ * Recognize correct Braille pattern from options
+ * 
+ * SPECS:
+ * - Always 4 options (2x2 grid)
+ * - 1 correct + 3 smart distractors
+ * - Distractors: 1-2 dot difference, prioritize real confusions (i/j, e/i, n/ñ)
+ * - No mirror patterns, no repeat distractors in same level
+ * - Random order
  */
 
 const PickActivity = {
     currentIndex: 0,
     letters: [],
     onComplete: null,
-    correctCount: 0,
     score: 0,
-    currentOptions: [],
-    correctAnswer: null,
+    attempts: 0,
+    correct: 0,
+    usedDistractors: new Set(),
 
     /**
      * Start pick activity
-     * @param {string[]} letters - Letters to pick
-     * @param {Function} onComplete - Callback when activity ends
      */
     start(letters, onComplete) {
         this.letters = letters;
         this.currentIndex = 0;
         this.onComplete = onComplete;
-        this.correctCount = 0;
         this.score = 0;
+        this.attempts = 0;
+        this.correct = 0;
+        this.usedDistractors = new Set();
 
-        HintSystem.reset();
         this.render();
     },
 
     /**
-     * Generate options with similar distractors
-     * @param {string} correctLetter 
-     * @returns {string[]} - Array of 4 letters including correct one
+     * Generate smart distractors
      */
-    generateOptions(correctLetter) {
-        // Get similar letters (1-2 dot difference)
-        const similar = BrailleData.getSimilarLetters(correctLetter, 3);
+    generateDistractors(targetLetter, count = 3) {
+        const distractors = [];
 
-        // Create options array with correct answer
-        const options = [correctLetter, ...similar];
+        // First, get confusion pairs from BrailleData
+        const confusions = BrailleData.CONFUSIONS[targetLetter.toLowerCase()] || [];
 
-        // Shuffle options
-        return options.sort(() => Math.random() - 0.5);
+        // Filter out already used distractors
+        const availableConfusions = confusions.filter(c =>
+            !this.usedDistractors.has(c) && c !== targetLetter.toLowerCase()
+        );
+
+        // Add confusions first (they are smart distractors)
+        for (const conf of availableConfusions) {
+            if (distractors.length >= count) break;
+            distractors.push(conf);
+            this.usedDistractors.add(conf);
+        }
+
+        // If we need more, find letters with 1-2 dot difference
+        if (distractors.length < count) {
+            const targetPattern = BrailleData.getPattern(targetLetter);
+            const allLetters = BrailleData.getAllLetters();
+
+            const candidates = allLetters.filter(letter => {
+                if (letter === targetLetter.toLowerCase()) return false;
+                if (distractors.includes(letter)) return false;
+                if (this.usedDistractors.has(letter)) return false;
+
+                const pattern = BrailleData.getPattern(letter);
+                const diff = this.countDotDifference(targetPattern, pattern);
+
+                // 1-2 dot difference, not a mirror
+                return diff >= 1 && diff <= 2 && !this.isMirror(targetPattern, pattern);
+            });
+
+            // Shuffle and take what we need
+            candidates.sort(() => Math.random() - 0.5);
+
+            for (const candidate of candidates) {
+                if (distractors.length >= count) break;
+                distractors.push(candidate);
+                this.usedDistractors.add(candidate);
+            }
+        }
+
+        // If still not enough, add random letters (fallback)
+        if (distractors.length < count) {
+            const allLetters = BrailleData.getAllLetters();
+            const remaining = allLetters.filter(l =>
+                l !== targetLetter.toLowerCase() &&
+                !distractors.includes(l)
+            );
+            remaining.sort(() => Math.random() - 0.5);
+
+            while (distractors.length < count && remaining.length > 0) {
+                distractors.push(remaining.pop());
+            }
+        }
+
+        return distractors;
     },
 
     /**
-     * Render current question
+     * Count dot differences between patterns
+     */
+    countDotDifference(pattern1, pattern2) {
+        let diff = 0;
+        for (let i = 0; i < 6; i++) {
+            if (pattern1[i] !== pattern2[i]) diff++;
+        }
+        return diff;
+    },
+
+    /**
+     * Check if pattern is a horizontal mirror
+     */
+    isMirror(pattern1, pattern2) {
+        // Check if swapping left (0,1,2) and right (3,4,5) columns creates pattern2
+        const mirrored = [
+            pattern1[3], pattern1[4], pattern1[5],
+            pattern1[0], pattern1[1], pattern1[2]
+        ];
+
+        return mirrored.every((val, i) => val === pattern2[i]);
+    },
+
+    /**
+     * Render activity
      */
     render() {
         const overlay = document.getElementById('activity-overlay');
-        const letter = this.letters[this.currentIndex];
-        const pattern = BrailleData.getPattern(letter);
+        const targetLetter = this.letters[this.currentIndex];
         const progress = ((this.currentIndex + 1) / this.letters.length) * 100;
         const dotOrder = [1, 4, 2, 5, 3, 6];
 
-        // Generate options with similar distractors
-        this.currentOptions = this.generateOptions(letter);
-        this.correctAnswer = letter;
+        // Generate options: 1 correct + 3 distractors
+        const distractors = this.generateDistractors(targetLetter, 3);
+        const options = [targetLetter.toLowerCase(), ...distractors];
+
+        // Shuffle options randomly
+        options.sort(() => Math.random() - 0.5);
 
         overlay.innerHTML = `
             <div class="activity-header">
@@ -77,44 +157,43 @@ const PickActivity = {
             </div>
 
             <div class="activity-content">
-                <p class="activity-instruction">¿Cuál es el patrón correcto para?</p>
+                <p class="activity-instruction">¿Cuál es la letra?</p>
                 
-                <div class="activity-letter">${letter}</div>
+                <div class="activity-letter">${targetLetter.toUpperCase()}</div>
                 
-                <div class="activity-options" id="pick-options">
-                    ${this.currentOptions.map((optLetter, idx) => {
-            const optPattern = BrailleData.getPattern(optLetter);
+                <!-- 2x2 Grid of options -->
+                <div class="pick-grid" id="pick-options">
+                    ${options.map(letter => {
+            const pattern = BrailleData.getPattern(letter);
             return `
-                            <div class="option-card" data-option="${optLetter}" data-index="${idx}">
-                                <div class="braille-cell size-sm">
+                            <button class="pick-option" data-letter="${letter}" data-correct="${letter === targetLetter.toLowerCase()}">
+                                <div class="braille-cell size-md">
                                     ${dotOrder.map(dotNum => `
-                                        <div class="braille-dot ${optPattern[dotNum - 1] === 1 ? 'active' : ''}" 
+                                        <div class="braille-dot ${pattern[dotNum - 1] === 1 ? 'active' : ''}" 
                                              data-dot="${dotNum}">
                                         </div>
                                     `).join('')}
                                 </div>
-                            </div>
+                            </button>
                         `;
         }).join('')}
                 </div>
-
-                <div class="hint-container hidden" id="hint-container"></div>
             </div>
 
             <div class="activity-footer">
-                <button class="btn btn-secondary btn-block" id="pick-hint">
-                    💡 Pista
-                </button>
+                <p style="text-align: center; color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                    Toca el patrón correcto
+                </p>
             </div>
         `;
 
         overlay.classList.remove('hidden');
         Navigation.hide();
 
-        this.attachEventListeners();
+        // Speak the prompt
+        AudioFeedback.speak(`¿Cuál es la letra ${targetLetter.toUpperCase()}?`);
 
-        // Speak the instruction
-        AudioFeedback.speak(`Selecciona el patrón para la letra ${letter}`);
+        this.attachEventListeners();
     },
 
     /**
@@ -126,147 +205,107 @@ const PickActivity = {
             this.close();
         });
 
-        // Option cards
-        const options = document.querySelectorAll('.option-card');
+        // Option buttons
+        const options = document.querySelectorAll('.pick-option');
         options.forEach(option => {
             option.addEventListener('click', () => {
-                this.handleOptionSelect(option);
+                this.selectOption(option);
             });
-        });
-
-        // Hint button
-        document.getElementById('pick-hint').addEventListener('click', () => {
-            this.showHint();
         });
     },
 
     /**
      * Handle option selection
-     * @param {HTMLElement} option 
      */
-    handleOptionSelect(option) {
-        const selectedLetter = option.getAttribute('data-option');
-        const isCorrect = selectedLetter === this.correctAnswer;
+    selectOption(optionEl) {
+        const isCorrect = optionEl.dataset.correct === 'true';
+        const selectedLetter = optionEl.dataset.letter;
+
+        this.attempts++;
 
         // Disable all options
-        const allOptions = document.querySelectorAll('.option-card');
-        allOptions.forEach(opt => {
+        document.querySelectorAll('.pick-option').forEach(opt => {
             opt.style.pointerEvents = 'none';
         });
 
         if (isCorrect) {
-            option.classList.add('correct');
-            this.correctCount++;
-            this.score += 100;
-
+            // CORRECT
+            this.correct++;
+            this.score += 10;
+            optionEl.classList.add('correct');
             Haptics.success();
-            AudioFeedback.success();
-            AppState.recordAnswer(true);
+            AudioFeedback.playTone('success');
 
-            // Move to next after brief pause
+            // Move to next after brief delay
             setTimeout(() => {
                 if (this.currentIndex < this.letters.length - 1) {
                     this.currentIndex++;
-                    HintSystem.reset();
                     this.render();
                 } else {
                     this.complete();
                 }
-            }, 800);
+            }, 600);
         } else {
-            option.classList.add('incorrect');
-
+            // INCORRECT
+            optionEl.classList.add('incorrect');
             Haptics.error();
-            AudioFeedback.error();
-            AppState.recordAnswer(false);
+            AudioFeedback.playTone('error');
 
             // Show correct answer
-            allOptions.forEach(opt => {
-                if (opt.getAttribute('data-option') === this.correctAnswer) {
+            document.querySelectorAll('.pick-option').forEach(opt => {
+                if (opt.dataset.correct === 'true') {
                     opt.classList.add('correct');
                 }
             });
 
-            // Record failed attempt for hints
-            if (HintSystem.recordFailedAttempt()) {
-                this.showHint();
-            }
-
-            // Move to next after showing correct answer
+            // Allow retry after showing feedback
             setTimeout(() => {
-                if (this.currentIndex < this.letters.length - 1) {
-                    this.currentIndex++;
-                    HintSystem.reset();
-                    this.render();
-                } else {
-                    this.complete();
-                }
-            }, 1500);
+                // Re-enable options, resetting incorrect state
+                optionEl.classList.remove('incorrect');
+                document.querySelectorAll('.pick-option').forEach(opt => {
+                    opt.classList.remove('correct');
+                    opt.style.pointerEvents = 'auto';
+                });
+            }, 800);
         }
-    },
-
-    /**
-     * Show hint
-     */
-    showHint() {
-        const letter = this.letters[this.currentIndex];
-        const hintContainer = document.getElementById('hint-container');
-
-        HintSystem.requestHint();
-        const hint = HintSystem.getHint(letter);
-
-        if (hint.text) {
-            hintContainer.innerHTML = `
-                <span class="hint-icon">💡</span>
-                <span class="hint-text">${hint.text}</span>
-            `;
-            hintContainer.classList.remove('hidden');
-        }
-
-        // For level 2+, highlight the correct option
-        if (hint.level >= 2) {
-            const options = document.querySelectorAll('.option-card');
-            options.forEach(opt => {
-                if (opt.getAttribute('data-option') === this.correctAnswer) {
-                    opt.style.borderColor = 'var(--color-secondary)';
-                    opt.style.boxShadow = '0 0 0 2px rgba(91, 141, 239, 0.3)';
-                }
-            });
-        }
-
-        Haptics.tap();
     },
 
     /**
      * Complete activity
      */
     complete() {
-        const accuracy = Math.round((this.correctCount / this.letters.length) * 100);
+        const accuracy = this.attempts > 0
+            ? Math.round((this.correct / this.attempts) * 100)
+            : 100;
 
-        Modal.showGameComplete(
-            { score: this.score, accuracy },
-            () => {
-                // Retry
+        const stars = Progression.calculateStars(accuracy);
+        const completed = Progression.isLevelComplete(accuracy);
+
+        Haptics.celebration();
+        AudioFeedback.playTone('celebration');
+
+        Modal.showGameComplete(this.score, accuracy, {
+            stars,
+            onRetry: () => {
+                Modal.hide();
+                this.usedDistractors.clear();
                 this.start(this.letters, this.onComplete);
             },
-            () => {
-                // Menu
+            onContinue: () => {
+                Modal.hide();
+                if (this.onComplete) {
+                    this.onComplete({
+                        type: 'pick',
+                        letters: this.letters,
+                        completed,
+                        score: this.score,
+                        accuracy,
+                        stars
+                    });
+                }
                 this.close();
-                Navigation.navigateTo('home');
             }
-        );
-
-        if (this.onComplete) {
-            this.onComplete({
-                type: 'pick',
-                letters: this.letters,
-                score: this.score,
-                accuracy,
-                completed: true
-            });
-        }
-
-        this.close();
+        });
     },
 
     /**

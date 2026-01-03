@@ -1,45 +1,70 @@
 /**
  * Build Activity
  * Construct Braille patterns by tapping dots
- * KEY RULE: Immediate feedback per dot
+ * 
+ * SPECS:
+ * - Immediate per-dot feedback:
+ *   ✅ Correct: visual positive + soft haptic
+ *   ❌ Incorrect: visual negative (0.5s) + strong haptic, dot stays
+ * - 3-level hint system with 5s cooldown:
+ *   1. Conceptual: "Necesitas el punto superior derecho"
+ *   2. Technical: "Activa el punto 4"
+ *   3. Ghost pattern (30% opacity, 1s, non-interactive)
+ * - No attempt limit
  */
 
 const BuildActivity = {
     currentIndex: 0,
     letters: [],
     onComplete: null,
+    userPattern: [0, 0, 0, 0, 0, 0],
     targetPattern: [],
-    userPattern: [],
-    correctCount: 0,
-    totalAttempts: 0,
     score: 0,
+    totalAttempts: 0,
+    correctAttempts: 0,
+    hintLevel: 0,
+    hintCooldown: false,
+    noHints: false,
+    timeLimit: null,
+    startTime: null,
+    HINT_COOLDOWN_MS: 5000, // 5 seconds
 
     /**
      * Start build activity
-     * @param {string[]} letters - Letters to build
-     * @param {Function} onComplete - Callback when activity ends
      */
-    start(letters, onComplete) {
+    start(letters, onComplete, options = {}) {
         this.letters = letters;
         this.currentIndex = 0;
         this.onComplete = onComplete;
-        this.correctCount = 0;
-        this.totalAttempts = 0;
         this.score = 0;
+        this.totalAttempts = 0;
+        this.correctAttempts = 0;
+        this.noHints = options.noHints || false;
+        this.timeLimit = options.timeLimit || null;
+        this.startTime = Date.now();
 
-        HintSystem.reset();
+        this.resetPattern();
         this.render();
     },
 
     /**
-     * Render current letter
+     * Reset current pattern
+     */
+    resetPattern() {
+        this.userPattern = [0, 0, 0, 0, 0, 0];
+        this.hintLevel = 0;
+        this.hintCooldown = false;
+
+        const letter = this.letters[this.currentIndex];
+        this.targetPattern = BrailleData.getPattern(letter);
+    },
+
+    /**
+     * Render activity
      */
     render() {
         const overlay = document.getElementById('activity-overlay');
         const letter = this.letters[this.currentIndex];
-        this.targetPattern = BrailleData.getPattern(letter);
-        this.userPattern = [0, 0, 0, 0, 0, 0];
-
         const progress = ((this.currentIndex + 1) / this.letters.length) * 100;
         const dotOrder = [1, 4, 2, 5, 3, 6];
 
@@ -61,34 +86,50 @@ const BuildActivity = {
             </div>
 
             <div class="activity-content">
-                <p class="activity-instruction">Construye el patrón Braille</p>
+                <p class="activity-instruction">Construye la letra</p>
                 
-                <div class="activity-letter">${letter}</div>
+                <div class="activity-letter">${letter.toUpperCase()}</div>
                 
-                <div class="activity-cell-container">
+                <div class="activity-cell-container" id="build-cell-container">
                     <div class="braille-cell size-lg interactive" id="build-cell">
                         ${dotOrder.map(dotNum => `
-                            <div class="braille-dot" 
+                            <div class="braille-dot ${this.userPattern[dotNum - 1] === 1 ? 'active' : ''}" 
                                  data-dot="${dotNum}"
                                  tabindex="0"
                                  role="button"
                                  aria-label="Punto ${dotNum}"
-                                 aria-pressed="false">
+                                 aria-pressed="${this.userPattern[dotNum - 1] === 1}">
                             </div>
                         `).join('')}
                     </div>
+                    <!-- Ghost pattern overlay -->
+                    <div class="ghost-overlay hidden" id="ghost-overlay">
+                        <div class="braille-cell size-lg ghost">
+                            ${dotOrder.map(dotNum => `
+                                <div class="braille-dot ${this.targetPattern[dotNum - 1] === 1 ? 'ghost' : ''}" 
+                                     data-dot="${dotNum}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
 
-                <div class="hint-container hidden" id="hint-container"></div>
+                <!-- Hint text area -->
+                <div id="hint-area" class="hint-area" style="min-height: 24px; margin-top: var(--space-2); text-align: center;">
+                </div>
             </div>
 
             <div class="activity-footer">
-                <div style="display: flex; gap: var(--space-3);">
-                    <button class="btn btn-secondary" id="build-hint" style="flex: 1;">
-                        💡 Pista
-                    </button>
-                    <button class="btn btn-secondary" id="build-reset" style="flex: 1;">
-                        🔄 Reiniciar
+                <div style="display: flex; gap: var(--space-3); margin-bottom: var(--space-3);">
+                    ${!this.noHints ? `
+                        <button class="btn btn-secondary flex-1" id="hint-btn">
+                            <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 4px;">lightbulb</span>
+                            Pista
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-secondary flex-1" id="reset-btn">
+                        <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 4px;">refresh</span>
+                        Reiniciar
                     </button>
                 </div>
             </div>
@@ -98,9 +139,6 @@ const BuildActivity = {
         Navigation.hide();
 
         this.attachEventListeners();
-
-        // Speak the letter
-        AudioFeedback.speak(`Construye la letra ${letter}`);
     },
 
     /**
@@ -112,179 +150,273 @@ const BuildActivity = {
             this.close();
         });
 
-        // Dot taps - IMMEDIATE FEEDBACK
+        // Dot clicking
         const cell = document.getElementById('build-cell');
         const dots = cell.querySelectorAll('.braille-dot');
 
         dots.forEach(dot => {
-            dot.addEventListener('click', () => {
-                this.handleDotTap(dot);
+            dot.addEventListener('click', (e) => {
+                const dotNum = parseInt(e.target.dataset.dot);
+                this.toggleDot(dotNum);
             });
 
+            // Keyboard accessibility
             dot.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    this.handleDotTap(dot);
+                    const dotNum = parseInt(e.target.dataset.dot);
+                    this.toggleDot(dotNum);
                 }
             });
         });
 
         // Hint button
-        document.getElementById('build-hint').addEventListener('click', () => {
-            this.showHint();
-        });
+        const hintBtn = document.getElementById('hint-btn');
+        if (hintBtn) {
+            hintBtn.addEventListener('click', () => {
+                this.showHint();
+            });
+        }
 
         // Reset button
-        document.getElementById('build-reset').addEventListener('click', () => {
-            this.resetCell();
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            this.resetCurrentPattern();
         });
     },
 
     /**
-     * Handle dot tap with IMMEDIATE FEEDBACK
-     * @param {HTMLElement} dot 
+     * Toggle a dot and provide immediate feedback
      */
-    handleDotTap(dot) {
-        const dotNum = parseInt(dot.getAttribute('data-dot'));
+    toggleDot(dotNum) {
         const dotIndex = dotNum - 1;
-        const targetValue = this.targetPattern[dotIndex];
+        const isTarget = this.targetPattern[dotIndex] === 1;
+        const isCurrentlyActive = this.userPattern[dotIndex] === 1;
 
-        // Current state of this dot
-        const isCurrentlyActive = dot.classList.contains('correct');
+        // If turning off a dot
+        if (isCurrentlyActive) {
+            this.userPattern[dotIndex] = 0;
+            this.updateDotVisual(dotNum, 'default');
+            Haptics.tap();
+            return;
+        }
 
+        // Turning on a dot - check if correct
         this.totalAttempts++;
 
-        // Clear previous error states
-        dot.classList.remove('incorrect');
+        if (isTarget) {
+            // CORRECT
+            this.userPattern[dotIndex] = 1;
+            this.correctAttempts++;
+            this.updateDotVisual(dotNum, 'correct');
+            Haptics.success();
+            AudioFeedback.playTone('success');
 
-        if (!isCurrentlyActive) {
-            // User is trying to activate this dot
-            if (targetValue === 1) {
-                // CORRECT - this dot should be active
-                dot.classList.add('correct');
-                this.userPattern[dotIndex] = 1;
-                this.correctCount++;
-
-                Haptics.success();
-                AudioFeedback.success();
-
-                // Check if pattern is complete
-                this.checkComplete();
-            } else {
-                // INCORRECT - this dot should NOT be active
-                dot.classList.add('incorrect');
-
-                Haptics.error();
-                AudioFeedback.error();
-
-                // Remove incorrect state after animation
-                setTimeout(() => {
-                    dot.classList.remove('incorrect');
-                }, 300);
-
-                // Record failed attempt for hint system
-                AppState.recordAnswer(false);
-                if (HintSystem.recordFailedAttempt()) {
-                    this.showHint();
-                }
+            // Check if pattern is complete
+            if (this.isPatternComplete()) {
+                this.onPatternComplete();
             }
         } else {
-            // User is trying to deactivate - in build mode we don't allow deactivation of correct dots
-            Haptics.tap();
-        }
-    },
+            // INCORRECT - show error for 0.5s, dot stays
+            this.userPattern[dotIndex] = 1;
+            this.updateDotVisual(dotNum, 'incorrect');
+            Haptics.error();
+            AudioFeedback.playTone('error');
 
-    /**
-     * Check if pattern is complete
-     */
-    checkComplete() {
-        const letter = this.letters[this.currentIndex];
-
-        if (BrailleData.patternsMatch(this.userPattern, this.targetPattern)) {
-            // Pattern complete!
-            AppState.recordAnswer(true);
-            this.score += 100;
-
-            // Celebrate briefly then move to next
+            // Keep error state for 0.5s
             setTimeout(() => {
-                if (this.currentIndex < this.letters.length - 1) {
-                    this.currentIndex++;
-                    HintSystem.reset();
-                    this.render();
-                } else {
-                    this.complete();
+                // Keep the dot active but change to default state
+                const dotEl = document.querySelector(`[data-dot="${dotNum}"]`);
+                if (dotEl) {
+                    dotEl.classList.remove('incorrect');
+                    dotEl.classList.add('active');
                 }
             }, 500);
         }
     },
 
     /**
-     * Show hint
+     * Update dot visual state
      */
-    showHint() {
-        const letter = this.letters[this.currentIndex];
-        const cell = document.getElementById('build-cell');
-        const hintContainer = document.getElementById('hint-container');
+    updateDotVisual(dotNum, state) {
+        const dotEl = document.querySelector(`#build-cell [data-dot="${dotNum}"]`);
+        if (!dotEl) return;
 
-        HintSystem.requestHint();
-        HintSystem.renderHint(letter, hintContainer, cell);
-
-        Haptics.tap();
+        dotEl.classList.remove('default', 'active', 'correct', 'incorrect', 'ghost');
+        dotEl.classList.add(state);
+        dotEl.setAttribute('aria-pressed', state !== 'default');
     },
 
     /**
-     * Reset current cell
+     * Check if pattern is complete (all target dots are active)
      */
-    resetCell() {
-        const cell = document.getElementById('build-cell');
-        const dots = cell.querySelectorAll('.braille-dot');
+    isPatternComplete() {
+        for (let i = 0; i < 6; i++) {
+            if (this.targetPattern[i] === 1 && this.userPattern[i] !== 1) {
+                return false;
+            }
+        }
+        return true;
+    },
 
-        dots.forEach(dot => {
-            dot.classList.remove('correct', 'incorrect', 'hint', 'ghost');
-            dot.setAttribute('aria-pressed', 'false');
-        });
+    /**
+     * Handle pattern completion
+     */
+    onPatternComplete() {
+        this.score += 10;
 
-        this.userPattern = [0, 0, 0, 0, 0, 0];
+        // Brief delay before moving to next
+        setTimeout(() => {
+            if (this.currentIndex < this.letters.length - 1) {
+                this.currentIndex++;
+                this.resetPattern();
+                this.render();
+            } else {
+                this.complete();
+            }
+        }, 600);
+    },
 
-        // Clear hints
-        const hintContainer = document.getElementById('hint-container');
-        hintContainer.classList.add('hidden');
-        hintContainer.innerHTML = '';
+    /**
+     * Show hint based on current level
+     */
+    showHint() {
+        if (this.hintCooldown) return;
 
+        this.hintLevel++;
+        const hintArea = document.getElementById('hint-area');
+        const hintBtn = document.getElementById('hint-btn');
+
+        // Find a missing dot
+        let missingDot = -1;
+        for (let i = 0; i < 6; i++) {
+            if (this.targetPattern[i] === 1 && this.userPattern[i] !== 1) {
+                missingDot = i + 1;
+                break;
+            }
+        }
+
+        if (missingDot === -1) return;
+
+        // Get position description
+        const positions = {
+            1: 'superior izquierdo',
+            2: 'central izquierdo',
+            3: 'inferior izquierdo',
+            4: 'superior derecho',
+            5: 'central derecho',
+            6: 'inferior derecho'
+        };
+
+        if (this.hintLevel === 1) {
+            // Level 1: Conceptual hint
+            hintArea.innerHTML = `<p style="color: var(--color-primary); font-size: var(--font-size-sm);">
+                💡 Necesitas el punto ${positions[missingDot]}
+            </p>`;
+            Haptics.tap();
+        } else if (this.hintLevel === 2) {
+            // Level 2: Technical hint
+            hintArea.innerHTML = `<p style="color: var(--color-primary); font-size: var(--font-size-sm); font-weight: bold;">
+                🎯 Activa el punto ${missingDot}
+            </p>`;
+            Haptics.tap();
+        } else if (this.hintLevel >= 3) {
+            // Level 3: Ghost pattern
+            this.showGhostPattern();
+            hintArea.innerHTML = `<p style="color: var(--color-text-secondary); font-size: var(--font-size-sm);">
+                👻 Patrón mostrado
+            </p>`;
+        }
+
+        // Start cooldown
+        this.hintCooldown = true;
+        if (hintBtn) {
+            hintBtn.disabled = true;
+            hintBtn.style.opacity = '0.5';
+        }
+
+        setTimeout(() => {
+            this.hintCooldown = false;
+            if (hintBtn) {
+                hintBtn.disabled = false;
+                hintBtn.style.opacity = '1';
+            }
+        }, this.HINT_COOLDOWN_MS);
+    },
+
+    /**
+     * Show ghost pattern overlay
+     */
+    showGhostPattern() {
+        const ghostOverlay = document.getElementById('ghost-overlay');
+        if (!ghostOverlay) return;
+
+        ghostOverlay.classList.remove('hidden');
+        ghostOverlay.style.opacity = '0.3';
+
+        // Hide after 1 second
+        setTimeout(() => {
+            ghostOverlay.classList.add('hidden');
+        }, 1000);
+    },
+
+    /**
+     * Reset current pattern
+     */
+    resetCurrentPattern() {
         Haptics.tap();
+        this.userPattern = [0, 0, 0, 0, 0, 0];
+        this.hintLevel = 0;
+
+        const cell = document.getElementById('build-cell');
+        if (cell) {
+            cell.querySelectorAll('.braille-dot').forEach(dot => {
+                dot.classList.remove('active', 'correct', 'incorrect', 'ghost');
+                dot.setAttribute('aria-pressed', 'false');
+            });
+        }
+
+        const hintArea = document.getElementById('hint-area');
+        if (hintArea) {
+            hintArea.innerHTML = '';
+        }
     },
 
     /**
      * Complete activity
      */
     complete() {
-        const totalDots = this.letters.length * 6;
-        const accuracy = Math.round((this.correctCount / Math.max(this.totalAttempts, 1)) * 100);
+        const accuracy = this.totalAttempts > 0
+            ? Math.round((this.correctAttempts / this.totalAttempts) * 100)
+            : 100;
 
-        Modal.showGameComplete(
-            { score: this.score, accuracy },
-            () => {
-                // Retry
+        const stars = Progression.calculateStars(accuracy);
+        const completed = Progression.isLevelComplete(accuracy);
+
+        Haptics.celebration();
+        AudioFeedback.playTone('celebration');
+
+        // Show completion modal
+        Modal.showGameComplete(this.score, accuracy, {
+            stars,
+            onRetry: () => {
+                Modal.hide();
                 this.start(this.letters, this.onComplete);
             },
-            () => {
-                // Menu
+            onContinue: () => {
+                Modal.hide();
+                if (this.onComplete) {
+                    this.onComplete({
+                        type: 'build',
+                        letters: this.letters,
+                        completed,
+                        score: this.score,
+                        accuracy,
+                        stars
+                    });
+                }
                 this.close();
-                Navigation.navigateTo('home');
             }
-        );
-
-        if (this.onComplete) {
-            this.onComplete({
-                type: 'build',
-                letters: this.letters,
-                score: this.score,
-                accuracy,
-                completed: true
-            });
-        }
-
-        this.close();
+        });
     },
 
     /**

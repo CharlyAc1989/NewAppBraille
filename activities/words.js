@@ -1,6 +1,12 @@
 /**
  * Words Activity
- * Practice building words letter by letter
+ * Build complete words letter by letter
+ * 
+ * SPECS:
+ * - Letter-by-letter construction (left to right)
+ * - Each letter = 1 cell
+ * - Uppercase and numbers = 2 cells (prefix + base)
+ * - Per-letter verification (not wait for complete word)
  */
 
 const WordsActivity = {
@@ -8,42 +14,77 @@ const WordsActivity = {
     currentLetterIndex: 0,
     words: [],
     onComplete: null,
+    userPattern: [0, 0, 0, 0, 0, 0],
+    targetPatterns: [], // Array of patterns for current character (1 or 2)
+    currentPatternIndex: 0, // Which pattern we're building (for multi-cell)
     score: 0,
-    correctCount: 0,
     totalAttempts: 0,
+    correctAttempts: 0,
 
     /**
      * Start words activity
-     * @param {string[]} words - Words to practice
-     * @param {Function} onComplete - Callback when activity ends
      */
     start(words, onComplete) {
         this.words = words;
         this.currentWordIndex = 0;
         this.currentLetterIndex = 0;
+        this.currentPatternIndex = 0;
         this.onComplete = onComplete;
         this.score = 0;
-        this.correctCount = 0;
         this.totalAttempts = 0;
+        this.correctAttempts = 0;
 
-        HintSystem.reset();
+        this.setupCurrentLetter();
         this.render();
     },
 
     /**
-     * Render current word/letter
+     * Setup patterns for current letter
+     */
+    setupCurrentLetter() {
+        const word = this.words[this.currentWordIndex];
+        const char = word[this.currentLetterIndex];
+
+        // Get patterns (1 for normal, 2 for uppercase/numbers)
+        this.targetPatterns = BrailleData.getPatterns(char);
+        this.currentPatternIndex = 0;
+        this.userPattern = [0, 0, 0, 0, 0, 0];
+    },
+
+    /**
+     * Render activity
      */
     render() {
         const overlay = document.getElementById('activity-overlay');
         const word = this.words[this.currentWordIndex];
-        const letter = word[this.currentLetterIndex].toUpperCase();
-        const targetPattern = BrailleData.getPattern(letter);
-
-        const totalLetters = this.words.reduce((sum, w) => sum + w.length, 0);
-        const completedLetters = this.words.slice(0, this.currentWordIndex).reduce((sum, w) => sum + w.length, 0) + this.currentLetterIndex;
-        const progress = ((completedLetters + 1) / totalLetters) * 100;
-
+        const currentChar = word[this.currentLetterIndex];
+        const progress = ((this.currentWordIndex * 100 + (this.currentLetterIndex / word.length) * 100) / this.words.length);
         const dotOrder = [1, 4, 2, 5, 3, 6];
+
+        // Word display with current letter highlighted
+        const wordDisplay = word.split('').map((char, idx) => {
+            let classes = 'word-letter';
+            if (idx < this.currentLetterIndex) classes += ' completed';
+            else if (idx === this.currentLetterIndex) classes += ' current';
+            return `<span class="${classes}">${char}</span>`;
+        }).join('');
+
+        // Check if we're building a prefix (uppercase or number sign)
+        const isMultiCell = this.targetPatterns.length > 1;
+        const isPrefix = isMultiCell && this.currentPatternIndex === 0;
+
+        let instruction = 'Construye la letra';
+        let charDisplay = currentChar.toUpperCase();
+
+        if (isPrefix) {
+            if (/[A-ZÑÁÉÍÓÚÜ]/.test(currentChar)) {
+                instruction = 'Primero: signo de mayúscula';
+                charDisplay = '⠨ MAY';
+            } else if (/[0-9]/.test(currentChar)) {
+                instruction = 'Primero: signo numérico';
+                charDisplay = '⠼ #';
+            }
+        }
 
         overlay.innerHTML = `
             <div class="activity-header">
@@ -57,72 +98,60 @@ const WordsActivity = {
                         <div class="progress-bar-fill" style="width: ${progress}%;"></div>
                     </div>
                 </div>
-                <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">
-                    Palabra ${this.currentWordIndex + 1}/${this.words.length}
+                <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary); min-width: 60px; text-align: right;">
+                    ${this.currentWordIndex + 1}/${this.words.length}
                 </span>
             </div>
 
             <div class="activity-content">
-                <p class="activity-instruction">Construye la palabra</p>
+                <p class="activity-instruction">${instruction}</p>
                 
-                <!-- Word Display -->
-                <div style="display: flex; justify-content: center; gap: var(--space-2); margin-bottom: var(--space-4);">
-                    ${word.split('').map((char, idx) => `
-                        <span style="
-                            font-size: var(--font-size-2xl);
-                            font-weight: var(--font-weight-bold);
-                            padding: var(--space-2) var(--space-3);
-                            border-radius: var(--radius-md);
-                            background: ${idx < this.currentLetterIndex ? 'var(--color-success)' : idx === this.currentLetterIndex ? 'var(--color-primary)' : 'var(--color-surface-secondary)'};
-                            color: ${idx <= this.currentLetterIndex ? 'white' : 'var(--color-text-primary)'};
-                        ">${char.toUpperCase()}</span>
-                    `).join('')}
+                <!-- Word display -->
+                <div class="word-display" style="font-size: 24px; letter-spacing: 4px; margin-bottom: var(--space-4);">
+                    ${wordDisplay}
                 </div>
+
+                <!-- Current character -->
+                <div class="activity-letter" style="font-size: 48px;">${charDisplay}</div>
                 
-                <p style="color: var(--color-text-secondary); margin-bottom: var(--space-4);">
-                    Construye: <strong>${letter}</strong>
-                </p>
+                <!-- Multi-cell indicator -->
+                ${isMultiCell ? `
+                    <div style="display: flex; gap: var(--space-2); justify-content: center; margin-bottom: var(--space-3);">
+                        <div class="cell-indicator ${this.currentPatternIndex === 0 ? 'active' : this.currentPatternIndex > 0 ? 'completed' : ''}">
+                            ${isPrefix && /[A-ZÑÁÉÍÓÚÜ]/.test(currentChar) ? 'MAY' : '#'}
+                        </div>
+                        <div class="cell-indicator ${this.currentPatternIndex === 1 ? 'active' : ''}">
+                            ${currentChar.toLowerCase()}
+                        </div>
+                    </div>
+                ` : ''}
                 
                 <div class="activity-cell-container">
                     <div class="braille-cell size-lg interactive" id="words-cell">
                         ${dotOrder.map(dotNum => `
-                            <div class="braille-dot" 
+                            <div class="braille-dot ${this.userPattern[dotNum - 1] === 1 ? 'active' : ''}" 
                                  data-dot="${dotNum}"
                                  tabindex="0"
                                  role="button"
-                                 aria-label="Punto ${dotNum}"
-                                 aria-pressed="false">
+                                 aria-label="Punto ${dotNum}">
                             </div>
                         `).join('')}
                     </div>
                 </div>
-
-                <div class="hint-container hidden" id="hint-container"></div>
             </div>
 
             <div class="activity-footer">
-                <div style="display: flex; gap: var(--space-3);">
-                    <button class="btn btn-secondary" id="words-hint" style="flex: 1;">
-                        💡 Pista
-                    </button>
-                    <button class="btn btn-secondary" id="words-reset" style="flex: 1;">
-                        🔄 Reiniciar
-                    </button>
-                </div>
+                <button class="btn btn-secondary btn-block" id="reset-btn">
+                    <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 4px;">refresh</span>
+                    Reiniciar letra
+                </button>
             </div>
         `;
 
         overlay.classList.remove('hidden');
         Navigation.hide();
 
-        // Store target pattern for checking
-        this.targetPattern = targetPattern;
-        this.userPattern = [0, 0, 0, 0, 0, 0];
-
         this.attachEventListeners();
-
-        // Speak the word and letter
-        AudioFeedback.speak(`Palabra ${word}, letra ${letter}`);
     },
 
     /**
@@ -134,178 +163,186 @@ const WordsActivity = {
             this.close();
         });
 
-        // Dot taps
+        // Dot clicking
         const cell = document.getElementById('words-cell');
         const dots = cell.querySelectorAll('.braille-dot');
 
         dots.forEach(dot => {
-            dot.addEventListener('click', () => {
-                this.handleDotTap(dot);
+            dot.addEventListener('click', (e) => {
+                const dotNum = parseInt(e.target.dataset.dot);
+                this.toggleDot(dotNum);
             });
-
-            dot.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    this.handleDotTap(dot);
-                }
-            });
-        });
-
-        // Hint button
-        document.getElementById('words-hint').addEventListener('click', () => {
-            this.showHint();
         });
 
         // Reset button
-        document.getElementById('words-reset').addEventListener('click', () => {
-            this.resetCell();
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            this.resetCurrentLetter();
         });
     },
 
     /**
-     * Handle dot tap with immediate feedback
-     * @param {HTMLElement} dot 
+     * Toggle dot
      */
-    handleDotTap(dot) {
-        const dotNum = parseInt(dot.getAttribute('data-dot'));
+    toggleDot(dotNum) {
         const dotIndex = dotNum - 1;
-        const targetValue = this.targetPattern[dotIndex];
+        const currentTarget = this.targetPatterns[this.currentPatternIndex];
+        const isTarget = currentTarget[dotIndex] === 1;
+        const isCurrentlyActive = this.userPattern[dotIndex] === 1;
 
-        const isCurrentlyActive = dot.classList.contains('correct');
+        // Toggle off
+        if (isCurrentlyActive) {
+            this.userPattern[dotIndex] = 0;
+            this.updateDotVisual(dotNum, 'default');
+            Haptics.tap();
+            return;
+        }
 
+        // Toggle on
         this.totalAttempts++;
-        dot.classList.remove('incorrect');
 
-        if (!isCurrentlyActive) {
-            if (targetValue === 1) {
-                dot.classList.add('correct');
-                this.userPattern[dotIndex] = 1;
-                this.correctCount++;
+        if (isTarget) {
+            // CORRECT
+            this.userPattern[dotIndex] = 1;
+            this.correctAttempts++;
+            this.updateDotVisual(dotNum, 'correct');
+            Haptics.success();
+            AudioFeedback.playTone('success');
 
-                Haptics.success();
-                AudioFeedback.success();
-
-                this.checkLetterComplete();
-            } else {
-                dot.classList.add('incorrect');
-
-                Haptics.error();
-                AudioFeedback.error();
-
-                setTimeout(() => {
-                    dot.classList.remove('incorrect');
-                }, 300);
-
-                AppState.recordAnswer(false);
-                if (HintSystem.recordFailedAttempt()) {
-                    this.showHint();
-                }
+            // Check if current pattern is complete
+            if (this.isPatternComplete()) {
+                this.onPatternComplete();
             }
         } else {
-            Haptics.tap();
-        }
-    },
-
-    /**
-     * Check if current letter is complete
-     */
-    checkLetterComplete() {
-        if (BrailleData.patternsMatch(this.userPattern, this.targetPattern)) {
-            AppState.recordAnswer(true);
-            this.score += 50;
-
-            const word = this.words[this.currentWordIndex];
+            // INCORRECT
+            this.userPattern[dotIndex] = 1;
+            this.updateDotVisual(dotNum, 'incorrect');
+            Haptics.error();
+            AudioFeedback.playTone('error');
 
             setTimeout(() => {
-                if (this.currentLetterIndex < word.length - 1) {
-                    // Next letter in word
-                    this.currentLetterIndex++;
-                    HintSystem.reset();
-                    this.render();
-                } else if (this.currentWordIndex < this.words.length - 1) {
-                    // Word complete - show celebration then next word
-                    this.currentWordIndex++;
-                    this.currentLetterIndex = 0;
-                    HintSystem.reset();
-
-                    Haptics.celebration();
-                    AudioFeedback.celebration();
-
-                    setTimeout(() => {
-                        this.render();
-                    }, 500);
-                } else {
-                    // All words complete
-                    this.complete();
+                const dotEl = document.querySelector(`#words-cell [data-dot="${dotNum}"]`);
+                if (dotEl) {
+                    dotEl.classList.remove('incorrect');
+                    dotEl.classList.add('active');
                 }
             }, 500);
         }
     },
 
     /**
-     * Show hint
+     * Update dot visual
      */
-    showHint() {
-        const word = this.words[this.currentWordIndex];
-        const letter = word[this.currentLetterIndex].toUpperCase();
-        const cell = document.getElementById('words-cell');
-        const hintContainer = document.getElementById('hint-container');
+    updateDotVisual(dotNum, state) {
+        const dotEl = document.querySelector(`#words-cell [data-dot="${dotNum}"]`);
+        if (!dotEl) return;
 
-        HintSystem.requestHint();
-        HintSystem.renderHint(letter, hintContainer, cell);
-
-        Haptics.tap();
+        dotEl.classList.remove('default', 'active', 'correct', 'incorrect');
+        dotEl.classList.add(state);
     },
 
     /**
-     * Reset current cell
+     * Check if current pattern is complete
      */
-    resetCell() {
-        const cell = document.getElementById('words-cell');
-        const dots = cell.querySelectorAll('.braille-dot');
+    isPatternComplete() {
+        const currentTarget = this.targetPatterns[this.currentPatternIndex];
+        for (let i = 0; i < 6; i++) {
+            if (currentTarget[i] === 1 && this.userPattern[i] !== 1) {
+                return false;
+            }
+        }
+        return true;
+    },
 
-        dots.forEach(dot => {
-            dot.classList.remove('correct', 'incorrect', 'hint', 'ghost');
-            dot.setAttribute('aria-pressed', 'false');
-        });
+    /**
+     * Handle pattern completion
+     */
+    onPatternComplete() {
+        this.score += 5;
 
+        setTimeout(() => {
+            // Check if more patterns for this character
+            if (this.currentPatternIndex < this.targetPatterns.length - 1) {
+                this.currentPatternIndex++;
+                this.userPattern = [0, 0, 0, 0, 0, 0];
+                this.render();
+                return;
+            }
+
+            // Move to next letter
+            const word = this.words[this.currentWordIndex];
+
+            if (this.currentLetterIndex < word.length - 1) {
+                this.currentLetterIndex++;
+                this.setupCurrentLetter();
+                this.render();
+            } else {
+                // Word complete, move to next word
+                if (this.currentWordIndex < this.words.length - 1) {
+                    this.currentWordIndex++;
+                    this.currentLetterIndex = 0;
+                    this.setupCurrentLetter();
+                    this.render();
+
+                    Haptics.celebration();
+                    AudioFeedback.speak(`¡Palabra completada!`);
+                } else {
+                    // All words complete
+                    this.complete();
+                }
+            }
+        }, 400);
+    },
+
+    /**
+     * Reset current letter
+     */
+    resetCurrentLetter() {
+        Haptics.tap();
         this.userPattern = [0, 0, 0, 0, 0, 0];
 
-        const hintContainer = document.getElementById('hint-container');
-        hintContainer.classList.add('hidden');
-        hintContainer.innerHTML = '';
-
-        Haptics.tap();
+        const cell = document.getElementById('words-cell');
+        if (cell) {
+            cell.querySelectorAll('.braille-dot').forEach(dot => {
+                dot.classList.remove('active', 'correct', 'incorrect');
+            });
+        }
     },
 
     /**
      * Complete activity
      */
     complete() {
-        const accuracy = Math.round((this.correctCount / Math.max(this.totalAttempts, 1)) * 100);
+        const accuracy = this.totalAttempts > 0
+            ? Math.round((this.correctAttempts / this.totalAttempts) * 100)
+            : 100;
 
-        Modal.showGameComplete(
-            { score: this.score, accuracy },
-            () => {
+        const stars = Progression.calculateStars(accuracy);
+        const completed = Progression.isLevelComplete(accuracy);
+
+        Haptics.celebration();
+        AudioFeedback.playTone('celebration');
+
+        Modal.showGameComplete(this.score, accuracy, {
+            stars,
+            onRetry: () => {
+                Modal.hide();
                 this.start(this.words, this.onComplete);
             },
-            () => {
+            onContinue: () => {
+                Modal.hide();
+                if (this.onComplete) {
+                    this.onComplete({
+                        type: 'words',
+                        words: this.words,
+                        completed,
+                        score: this.score,
+                        accuracy,
+                        stars
+                    });
+                }
                 this.close();
-                Navigation.navigateTo('home');
             }
-        );
-
-        if (this.onComplete) {
-            this.onComplete({
-                type: 'words',
-                words: this.words,
-                score: this.score,
-                accuracy,
-                completed: true
-            });
-        }
-
-        this.close();
+        });
     },
 
     /**
