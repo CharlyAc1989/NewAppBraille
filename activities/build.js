@@ -296,19 +296,26 @@ const BuildActivity = {
      * Handle pattern completion - show next button
      */
     onPatternComplete() {
+        console.log('Pattern complete! Showing next button...');
         this.score += 10;
 
-        // Show the next button
-        const nextBtn = document.getElementById('next-btn');
-        if (nextBtn) {
-            nextBtn.classList.remove('hidden');
-        }
+        // Use setTimeout to ensure DOM is updated before modifying
+        setTimeout(() => {
+            // Show the next button
+            const nextBtn = document.getElementById('next-btn');
+            console.log('Next button found:', nextBtn);
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.style.display = 'block'; // Force display
+                console.log('Next button should be visible now');
+            }
 
-        // Update hint area with success message
-        const hintArea = document.getElementById('hint-area');
-        if (hintArea) {
-            hintArea.innerHTML = `<p style="color: var(--color-success); font-size: var(--font-size-sm); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente" para continuar</p>`;
-        }
+            // Update hint area with success message
+            const hintArea = document.getElementById('hint-area');
+            if (hintArea) {
+                hintArea.innerHTML = `<p style="color: var(--color-success); font-size: var(--font-size-sm); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente" para continuar</p>`;
+            }
+        }, 100);
     },
 
     /**

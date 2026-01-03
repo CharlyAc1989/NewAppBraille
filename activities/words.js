@@ -286,17 +286,20 @@ const WordsActivity = {
             return;
         }
 
-        // Show next button
-        const nextBtn = document.getElementById('next-btn');
-        if (nextBtn) {
-            nextBtn.classList.remove('hidden');
-        }
+        // Show next button after short delay
+        setTimeout(() => {
+            const nextBtn = document.getElementById('next-btn');
+            if (nextBtn) {
+                nextBtn.classList.remove('hidden');
+                nextBtn.style.display = 'block';
+            }
 
-        // Show success message
-        const wordsHint = document.getElementById('words-hint');
-        if (wordsHint) {
-            wordsHint.innerHTML = `<span style="color: var(--color-success); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente"</span>`;
-        }
+            // Show success message
+            const wordsHint = document.getElementById('words-hint');
+            if (wordsHint) {
+                wordsHint.innerHTML = `<span style="color: var(--color-success); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente"</span>`;
+            }
+        }, 100);
     },
 
     /**

@@ -251,17 +251,20 @@ const PickActivity = {
             Haptics.success();
             AudioFeedback.playTone('success');
 
-            // Show next button
-            const nextBtn = document.getElementById('next-btn');
-            if (nextBtn) {
-                nextBtn.classList.remove('hidden');
-            }
+            // Show next button after short delay
+            setTimeout(() => {
+                const nextBtn = document.getElementById('next-btn');
+                if (nextBtn) {
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.style.display = 'block';
+                }
 
-            // Update hint text
-            const pickHint = document.getElementById('pick-hint');
-            if (pickHint) {
-                pickHint.innerHTML = `<span style="color: var(--color-success); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente"</span>`;
-            }
+                // Update hint text
+                const pickHint = document.getElementById('pick-hint');
+                if (pickHint) {
+                    pickHint.innerHTML = `<span style="color: var(--color-success); font-weight: bold;">✅ ¡Correcto! Toca "Siguiente"</span>`;
+                }
+            }, 100);
         } else {
             // INCORRECT
             optionEl.classList.add('incorrect');
